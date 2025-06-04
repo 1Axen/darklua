@@ -602,6 +602,35 @@ impl<'a> TokenBasedLuaGenerator<'a> {
         );
     }
 
+    fn write_type_function_with_tokens(
+        &mut self,
+        function: &TypeFunctionStatement,
+        tokens: &TypeFunctionTokens,
+    ) {
+        if function.is_exported() {
+            if let Some(export_token) = &tokens.export {
+                self.write_token(export_token);
+            } else {
+                self.write_symbol("export");
+            }
+        }
+
+        self.write_token(&tokens.r#type);
+        self.write_token(&tokens.function);
+        self.write_identifier(function.get_identifier());
+
+        self.write_function_attributes(
+            tokens,
+            function.get_generic_parameters(),
+            function.parameters_count(),
+            function.iter_parameters(),
+            function.is_variadic(),
+            function.get_variadic_type(),
+            function.get_return_type(),
+            function.get_block(),
+        );
+    }
+
     fn write_numeric_for_with_tokens(
         &mut self,
         numeric_for: &NumericForStatement,
@@ -1319,6 +1348,45 @@ impl<'a> TokenBasedLuaGenerator<'a> {
         }
     }
 
+    fn generate_type_function_tokens(
+        &self,
+        function: &TypeFunctionStatement,
+    ) -> TypeFunctionTokens {
+        TypeFunctionTokens {
+            export: if function.is_exported() {
+                Some(Token::from_content("export"))
+            } else {
+                None
+            },
+            r#type: Token::from_content("type"),
+            function_body: FunctionBodyTokens {
+                function: Token::from_content("function"),
+                opening_parenthese: Token::from_content("("),
+                closing_parenthese: Token::from_content(")"),
+                end: Token::from_content("end"),
+                parameter_commas: intersect_with_token(
+                    comma_token(),
+                    function.parameters_count() + usize::from(function.is_variadic()),
+                ),
+                variable_arguments: if function.is_variadic() {
+                    Some(Token::from_content("..."))
+                } else {
+                    None
+                },
+                variable_arguments_colon: if function.has_variadic_type() {
+                    Some(Token::from_content(":"))
+                } else {
+                    None
+                },
+                return_type_colon: if function.has_return_type() {
+                    Some(Token::from_content(":"))
+                } else {
+                    None
+                },
+            },
+        }
+    }
+
     fn generate_numeric_for_tokens(&self, numeric_for: &NumericForStatement) -> NumericForTokens {
         NumericForTokens {
             r#for: Token::from_content("for"),
@@ -1805,6 +1873,17 @@ impl LuaGenerator for TokenBasedLuaGenerator<'_> {
             self.write_local_function_with_tokens(
                 function,
                 &self.generate_local_function_tokens(function),
+            );
+        }
+    }
+
+    fn write_type_function_statement(&mut self, function: &TypeFunctionStatement) {
+        if let Some(tokens) = function.get_tokens() {
+            self.write_type_function_with_tokens(function, tokens);
+        } else {
+            self.write_type_function_with_tokens(
+                function,
+                &self.generate_type_function_tokens(function),
             );
         }
     }

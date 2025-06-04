@@ -10,6 +10,7 @@ mod local_function;
 mod numeric_for;
 mod repeat_statement;
 mod type_declaration;
+mod type_function;
 mod while_statement;
 
 pub use assign::*;
@@ -24,6 +25,7 @@ pub use local_function::*;
 pub use numeric_for::*;
 pub use repeat_statement::*;
 pub use type_declaration::*;
+pub use type_function::*;
 pub use while_statement::*;
 
 use crate::nodes::FunctionCall;
@@ -45,6 +47,7 @@ pub enum Statement {
     Repeat(RepeatStatement),
     While(WhileStatement),
     TypeDeclaration(TypeDeclarationStatement),
+    TypeFunction(TypeFunctionStatement),
 }
 
 impl From<AssignStatement> for Statement {
@@ -122,5 +125,11 @@ impl From<WhileStatement> for Statement {
 impl From<TypeDeclarationStatement> for Statement {
     fn from(type_declaration: TypeDeclarationStatement) -> Statement {
         Statement::TypeDeclaration(type_declaration)
+    }
+}
+
+impl From<TypeFunctionStatement> for Statement {
+    fn from(type_function: TypeFunctionStatement) -> Statement {
+        Statement::TypeFunction(type_function)
     }
 }

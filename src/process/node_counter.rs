@@ -21,6 +21,7 @@ pub struct NodeCounter {
     pub return_count: usize,
     pub expression_count: usize,
     pub variable_count: usize,
+    pub type_function_count: usize,
     pub interpolated_string_count: usize,
 }
 
@@ -77,6 +78,10 @@ impl NodeProcessor for NodeCounter {
 
     fn process_local_function_statement(&mut self, _: &mut LocalFunctionStatement) {
         self.local_function_count += 1;
+    }
+
+    fn process_type_function_statement(&mut self, _: &mut TypeFunctionStatement) {
+        self.type_function_count += 1;
     }
 
     fn process_numeric_for_statement(&mut self, _: &mut NumericForStatement) {

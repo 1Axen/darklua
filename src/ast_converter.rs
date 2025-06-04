@@ -829,6 +829,35 @@ impl<'a> AstConverter<'a> {
                     }
                     self.statements.push(declaration.into());
                 }
+                ConvertWork::MakeTypeFunctionStatement {
+                    type_function,
+                    export_token,
+                } => {
+                    let builder = self.convert_function_body_attributes(
+                        type_function.function_body(),
+                        self.convert_token(type_function.function_token())?,
+                    )?;
+                    let mut name = Identifier::new(type_function.function_name().token().to_string());
+                    let mut type_token = None;
+
+                    if self.hold_token_data {
+                        name.set_token(self.convert_token(type_function.function_name())?);
+                        type_token = Some(type_function.type_token());
+                    }
+
+                    self.statements.push(builder
+                            .into_type_function_statement(
+                                name, 
+                                type_token
+                                    .map(|token| self.convert_token(token)).
+                                    transpose()?,
+                                export_token
+                                    .map(|token| self.convert_token(token))
+                                    .transpose()?
+                            )
+                            .into()
+                    );
+                }
                 ConvertWork::MakeFunctionCallExpression { call } => {
                     let call = self.make_function_call(call)?;
                     self.expressions.push(call.into());
@@ -1568,6 +1597,16 @@ impl<'a> AstConverter<'a> {
             ast::Stmt::TypeDeclaration(type_declaration) => {
                 self.convert_type_declaration(type_declaration, None);
             }
+            ast::Stmt::ExportedTypeFunction(exported_type_function) => {
+                let type_function = exported_type_function.type_function();
+                self.convert_type_function(
+                    type_function, 
+                    Some(exported_type_function.export_token())
+                );
+            }
+            ast::Stmt::TypeFunction(type_function) => {
+                self.convert_type_function(type_function, None);
+            }
             _ => {
                 return Err(ConvertError::Statement {
                     statement: statement.to_string(),
@@ -1606,6 +1645,20 @@ impl<'a> AstConverter<'a> {
                 }
             }
         }
+    }
+
+    fn convert_type_function(
+        &mut self,
+        type_function: &'a ast::luau::TypeFunction,
+        export_token: Option<&'a tokenizer::TokenReference>
+    ) {
+        self.work_stack
+            .push(ConvertWork::MakeTypeFunctionStatement { 
+                type_function: type_function, 
+                export_token: export_token 
+            }
+        );
+        self.push_function_body_work(type_function.function_body());
     }
 
     #[cfg_attr(feature = "tracing", tracing::instrument(level = "trace", skip_all))]
@@ -2837,6 +2890,10 @@ enum ConvertWork<'a> {
     },
     MakeTypeDeclarationStatement {
         type_declaration: &'a ast::luau::TypeDeclaration,
+        export_token: Option<&'a tokenizer::TokenReference>,
+    },
+    MakeTypeFunctionStatement {
+        type_function: &'a ast::luau::TypeFunction,
         export_token: Option<&'a tokenizer::TokenReference>,
     },
     MakePrefixFromExpression {

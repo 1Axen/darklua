@@ -3,10 +3,7 @@ use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
 use crate::nodes::{
-    Block, BlockTokens, DoTokens, FunctionBodyTokens, GenericForTokens, Identifier,
-    IfStatementTokens, LastStatement, LocalAssignTokens, LocalFunctionTokens, NumericForTokens,
-    ParentheseExpression, ParentheseTokens, Prefix, RepeatTokens, ReturnTokens, Statement, Token,
-    TriviaKind, TypeDeclarationTokens, Variable, WhileTokens,
+    Block, BlockTokens, DoTokens, FunctionBodyTokens, GenericForTokens, Identifier, IfStatementTokens, LastStatement, LocalAssignTokens, LocalFunctionTokens, NumericForTokens, ParentheseExpression, ParentheseTokens, Prefix, RepeatTokens, ReturnTokens, Statement, Token, TriviaKind, TypeDeclarationTokens, TypeFunctionTokens, Variable, WhileTokens
 };
 use crate::rules::{
     verify_property_collisions, verify_required_any_properties, Context, Rule, RuleConfiguration,
@@ -295,6 +292,57 @@ impl Rule for AppendTextComment {
                                 type_declaration.set_tokens(TypeDeclarationTokens {
                                     r#type: token,
                                     equal: Token::from_content("="),
+                                    export: None,
+                                });
+                            }
+                        }
+                        Statement::TypeFunction(type_function) => {
+                            let is_exported = type_function.is_exported();
+                            if let Some(tokens) = type_function.mutate_tokens() {
+                                if is_exported {
+                                    self.location.append_comment(
+                                        tokens
+                                            .export
+                                            .get_or_insert_with(|| Token::from_content("export")),
+                                        text,
+                                    );
+                                } else {
+                                    self.location.append_comment(&mut tokens.r#type, text);
+                                }
+                            } else if is_exported {
+                                let mut token = Token::from_content("export");
+                                self.location.append_comment(&mut token, text);
+
+                                type_function.set_tokens(TypeFunctionTokens {
+                                    r#type: Token::from_content("type"),
+                                    function_body: FunctionBodyTokens {
+                                        function: Token::from_content("function"),
+                                        opening_parenthese: Token::from_content("("),
+                                        closing_parenthese: Token::from_content(")"),
+                                        end: Token::from_content("end"),
+                                        parameter_commas: Vec::new(),
+                                        variable_arguments: None,
+                                        variable_arguments_colon: None,
+                                        return_type_colon: None,
+                                    },
+                                    export: Some(token),
+                                });
+                            } else {
+                                let mut token = Token::from_content("type");
+                                self.location.append_comment(&mut token, text);
+
+                                type_function.set_tokens(TypeFunctionTokens {
+                                    r#type: token,
+                                    function_body: FunctionBodyTokens {
+                                        function: Token::from_content("function"),
+                                        opening_parenthese: Token::from_content("("),
+                                        closing_parenthese: Token::from_content(")"),
+                                        end: Token::from_content("end"),
+                                        parameter_commas: Vec::new(),
+                                        variable_arguments: None,
+                                        variable_arguments_colon: None,
+                                        return_type_colon: None,
+                                    },
                                     export: None,
                                 });
                             }

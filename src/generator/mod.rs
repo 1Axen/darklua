@@ -37,6 +37,7 @@ pub trait LuaGenerator {
             Repeat(statement) => self.write_repeat_statement(statement),
             While(statement) => self.write_while_statement(statement),
             TypeDeclaration(statement) => self.write_type_declaration_statement(statement),
+            TypeFunction(statement) => self.write_type_function_statement(statement),
         }
     }
 
@@ -53,6 +54,7 @@ pub trait LuaGenerator {
     fn write_repeat_statement(&mut self, repeat: &nodes::RepeatStatement);
     fn write_while_statement(&mut self, while_statement: &nodes::WhileStatement);
     fn write_type_declaration_statement(&mut self, statement: &nodes::TypeDeclarationStatement);
+    fn write_type_function_statement(&mut self, statement: &nodes::TypeFunctionStatement);
 
     fn write_variable(&mut self, variable: &nodes::Variable) {
         use nodes::Variable::*;
