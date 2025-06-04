@@ -40,6 +40,11 @@ impl<'a, 'b, 'c> RequirePathLocator<'a, 'b, 'c> {
             new_path.pop();
             new_path.push(path);
             path = new_path;
+        } else if path.starts_with("@self") {
+            path = source
+                .parent()
+                .unwrap()
+                .join(path.strip_prefix("@self").unwrap());
         } else if !path.is_absolute() {
             {
                 let mut components = path.components();
